@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neumorphic Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Inline script prevents dark-mode flash (same technique as the production app) -->
+<script>
+(function(){
+  var p;
+  try { p = localStorage.getItem('neu-theme'); } catch(e){}
+  var dark = p === 'dark' || (!p && matchMedia('(prefers-color-scheme:dark)').matches);
+  if (dark) document.documentElement.classList.add('dark');
+  document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+})();
+</script>
+<style>
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Tokens — copied verbatim from the production neu.css + globals.css
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* --- neu.css light tokens --- */
+  --neu-surface: #dee0e9;
+  --neu-light: #f6f7fd;
+  --neu-dark: #c2c5d1;
+  --neu-inset-dark: #adb0be;
+  --neu-inset-light: #ffffff;
+  --neu-card-dark: #b4b7c3;
+  --neu-title: #2d303c;
+  --neu-text: #383c47;
+  --neu-muted: #616570;
+  --neu-subtle: #8a8e99;
+  --neu-soft: #9aa0ae;
+  --neu-icon: #6c7a90;
+  --neu-danger: #b3261e;
+  --neu-accent: #f7b733;
+  --neu-accent-text: #141418;
+  --neu-glow: rgb(247 183 51 / 0.45);
+}
+
+.dark {
+  /* --- neu.css dark tokens --- */
+  --neu-surface: #1f2128;
+  --neu-light: #2b2e38;
+  --neu-dark: #121318;
+  --neu-inset-dark: #0b0c10;
+  --neu-inset-light: #2b2e38;
+  --neu-card-dark: #0d0e12;
+  --neu-title: #f1f3f8;
+  --neu-text: #e6e9f0;
+  --neu-muted: #a8b0c0;
+  --neu-subtle: #8d95a6;
+  --neu-soft: #7a8396;
+  --neu-icon: #8f9bb3;
+  --neu-danger: #ff8a80;
+  /* glow stays the same in dark (production doesn't redefine it) */
+}
+
+/* ── Base ── */
+html { font-family: 'Inter', system-ui, sans-serif; }
+
+body {
+  font-family: inherit;
+  background-color: var(--neu-surface);
+  /* production light: .neu background-image */
+  background-image: linear-gradient(135deg, #e2e4ed 0%, #dee0e9 50%, #dadde7 100%);
+  color: var(--neu-text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+}
+
+/* production dark: body is --background (#141418), .neu section gradient on top.
+   Here both are on body since there's no wrapper section. */
+.dark body {
+  background-color: #141418;
+  background-image: linear-gradient(135deg, #252831 0%, #1f2128 55%, #1b1d23 100%);
+}
+
+/* ═════════════════════
+   Theme Toggle (3-way)
+   ═════════════════════ */
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--neu-surface);
+  box-shadow: 4px 4px 10px var(--neu-dark), -4px -4px 10px var(--neu-light);
+}
+.theme-toggle button {
+  border: none;
+  background: transparent;
+  color: var(--neu-subtle);
+  font-family: inherit;
+  font-size: 0;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+.theme-toggle button.active {
+  background: var(--neu-surface);
+  box-shadow: inset 2px 2px 5px var(--neu-inset-dark), inset -2px -2px 5px var(--neu-inset-light);
+  color: var(--neu-title);
+}
+.theme-toggle button:hover:not(.active) { color: var(--neu-muted); }
+.theme-toggle svg { width: 16px; height: 16px; }
+
+/* ═══════════════════════════════
+   Container (from neu-auth-dual.css)
+   ═══════════════════════════════ */
+.neu-auth-container {
+  position: relative;
+  display: flex;
+  max-width: 850px;
+  width: 100%;
+  min-height: 540px;
+  border-radius: 31px;
+  overflow: hidden;
+  background: var(--neu-surface);
+  box-shadow: 10px 10px 20px var(--neu-card-dark), -10px -10px 20px var(--neu-light);
+}
+
+/* production dark: card raised to a lighter shade (#2a2d38) so fields look properly inset */
+.dark .neu-auth-container {
+  background: #2a2d38;
+  box-shadow: 12px 12px 28px #08090c, -4px -4px 10px rgba(50, 54, 68, 0.15);
+}
+
+/* ── Panels ── */
+.neu-auth-panels {
+  display: flex;
+  width: 100%;
+  min-height: inherit;
+}
+
+.neu-auth-form {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 44px 36px 36px;
+  min-width: 0;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Login panel states */
+.neu-auth-container[data-active="login"] .neu-auth-form:first-child { opacity: 1; transform: translateX(0); }
+.neu-auth-container[data-active="register"] .neu-auth-form:first-child { opacity: 0; transform: translateX(-30px); pointer-events: none; }
+/* Register panel states */
+.neu-auth-container[data-active="register"] .neu-auth-form:nth-child(2) { opacity: 1; transform: translateX(0); }
+.neu-auth-container[data-active="login"] .neu-auth-form:nth-child(2) { opacity: 0; transform: translateX(30px); pointer-events: none; }
+
+/* ── Badge ── */
+.neu-auth-badge {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 9999px;
+  background: var(--neu-surface);
+  box-shadow: 8px 8px 18px var(--neu-dark), -8px -8px 18px var(--neu-light);
+  color: var(--neu-icon);
+  margin-bottom: 16px;
+}
+
+/* production dark: badge lighter than card to pop out */
+.dark .neu-auth-badge {
+  background: #353845;
+  box-shadow: 6px 6px 14px #08090c, -4px -4px 10px rgba(55, 58, 72, 0.2);
+}
+
+/* production dark: fields darker than card with subtle border for separation */
+.dark .neu-inset {
+  background: #1c1e26;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 5px 5px 10px #0a0b0f, inset -4px -4px 8px #2a2d38;
+}
+.dark .neu-inset:focus, .dark .neu-inset:focus-visible {
+  box-shadow: inset 6px 6px 12px #0a0b0f, inset -4px -4px 8px #2a2d38,
+              0 6px 10px -4px var(--neu-glow), 0 2px 0 -1px var(--neu-accent);
+}
+
+/* production dark: switch gets subtle border */
+.dark .neu-switch {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Title / Subtitle ── */
+.neu-auth-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--neu-title);
+  margin: 0 0 4px;
+}
+.neu-auth-subtitle {
+  font-size: 12px;
+  color: var(--neu-subtle);
+  margin: 0 0 20px;
+}
+
+/* ═══════════════
+   Fields (neu.css)
+   ═══════════════ */
+.field-group { width: 100%; display: grid; gap: 16px; }
+
+.field-wrap { position: relative; width: 100%; }
+
+.field-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--neu-icon);
+  pointer-events: none;
+  display: flex;
+}
+.field-icon svg { width: 17px; height: 17px; }
+
+.neu-inset {
+  width: 100%;
+  height: 49px;
+  border-radius: 17px;
+  border: none;
+  outline: none;
+  background: var(--neu-surface);
+  box-shadow: inset 4px 4px 8px var(--neu-inset-dark), inset -4px -4px 8px var(--neu-inset-light);
+  color: var(--neu-text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 0 14px 0 47px;
+}
+.neu-inset::placeholder { color: var(--neu-soft); }
+
+/* Focus: deeper press + amber glow (exact production match) */
+.neu-inset:focus, .neu-inset:focus-visible {
+  outline: none;
+  box-shadow: inset 5px 5px 9px var(--neu-inset-dark), inset -4px -4px 8px var(--neu-inset-light),
+              0 6px 10px -4px var(--neu-glow), 0 2px 0 -1px var(--neu-accent);
+}
+
+/* Autofill override (production exact) */
+.neu-inset:-webkit-autofill,
+.neu-inset:-webkit-autofill:hover,
+.neu-inset:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--neu-text) !important;
+  caret-color: var(--neu-text);
+  -webkit-box-shadow: 0 0 0 1000px var(--neu-surface) inset,
+                      inset 4px 4px 8px var(--neu-inset-dark),
+                      inset -4px -4px 8px var(--neu-inset-light) !important;
+  transition: background-color 600000s 0s;
+}
+
+.has-eye .neu-inset { padding-right: 44px; }
+
+/* ── Eye Toggle ── */
+.neu-eye {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: var(--neu-icon);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  outline: none;
+  padding: 0;
+}
+.neu-eye:focus-visible { box-shadow: 0 0 0 3px var(--neu-glow); }
+.neu-eye:hover { opacity: 0.8; }
+.neu-eye svg { width: 18px; height: 18px; }
+
+/* ── Hint ── */
+.field-hint {
+  font-size: 12px;
+  color: var(--neu-muted);
+  padding: 0 4px;
+  margin-top: -10px;
+}
+
+/* ═══════════════════════════
+   Remember / Forgot row
+   ═══════════════════════════ */
+.remember-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+.remember-label span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--neu-muted);
+}
+
+/* ── Switch (verbatim from neu.css) ── */
+.neu-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 45px;
+  height: 25px;
+  margin: 0;
+  border-radius: 9999px;
+  border: none;
+  background: var(--neu-surface);
+  box-shadow: inset 3px 3px 6px var(--neu-inset-dark), inset -3px -3px 6px var(--neu-light);
+  cursor: pointer;
+  outline: none;
+}
+.neu-switch::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 19px;
+  height: 19px;
+  border-radius: 9999px;
+  background: var(--neu-surface);
+  box-shadow: 2px 2px 5px var(--neu-dark), -2px -2px 4px var(--neu-light);
+  transition: transform 0.18s ease;
+}
+.neu-switch:checked {
+  background: var(--neu-accent);
+  box-shadow: inset 3px 3px 6px rgb(0 0 0 / 0.18), inset -3px -3px 6px rgb(255 255 255 / 0.35);
+}
+.neu-switch:checked::before { transform: translateX(20px); }
+.neu-switch:focus-visible {
+  box-shadow: inset 3px 3px 6px var(--neu-inset-dark), inset -3px -3px 6px var(--neu-light), 0 0 0 3px var(--neu-glow);
+}
+
+.forgot-link {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--neu-subtle);
+  text-decoration: none;
+  cursor: pointer;
+}
+.forgot-link:hover { opacity: 0.8; }
+
+/* ═══════════════════════════════════════════
+   Gradient Button (verbatim from neu.css)
+   ═══════════════════════════════════════════ */
+.neu-button-gradient {
+  width: 100%;
+  height: 49px;
+  border: none;
+  border-radius: 25px;
+  background: linear-gradient(135deg, #fcc844 0%, #e8890e 100%);
+  color: var(--neu-accent-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* light mode shadow */
+  box-shadow: 0 8px 20px -6px rgba(247, 183, 51, 0.5),
+              6px 6px 12px var(--neu-dark),
+              -6px -6px 12px var(--neu-light);
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+.neu-button-gradient:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 10px 26px -6px rgba(247, 183, 51, 0.6),
+              8px 8px 14px var(--neu-dark),
+              -8px -8px 14px var(--neu-light);
+}
+.neu-button-gradient:active {
+  filter: brightness(0.96);
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.2), inset -3px -3px 8px rgba(255, 255, 255, 0.15);
+}
+.neu-button-gradient:focus-visible {
+  outline: none;
+  box-shadow: 0 8px 20px -6px rgba(247, 183, 51, 0.5),
+              6px 6px 12px var(--neu-dark),
+              -6px -6px 12px var(--neu-light),
+              0 0 0 3px var(--neu-glow);
+}
+
+/* dark mode: reduced glow (production exact) */
+.dark .neu-button-gradient {
+  box-shadow: 0 8px 20px -6px rgba(247, 183, 51, 0.35),
+              6px 6px 12px var(--neu-dark),
+              -6px -6px 12px var(--neu-light);
+}
+.dark .neu-button-gradient:hover {
+  box-shadow: 0 10px 26px -6px rgba(247, 183, 51, 0.45),
+              8px 8px 14px var(--neu-dark),
+              -8px -8px 14px var(--neu-light);
+}
+
+.neu-btn-arrow { font-size: 1.15em; line-height: 1; }
+
+/* ═══════════════
+   Bottom Links
+   ═══════════════ */
+.bottom-link {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--neu-subtle);
+  text-align: center;
+}
+.bottom-link button {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  color: var(--neu-muted);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.bottom-link button:hover { opacity: 0.8; }
+.bottom-link-register {
+  font-size: 14px;
+  color: var(--neu-muted);
+}
+.bottom-link-register button {
+  font-size: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* ══════════════════════════════════════════════
+   Sliding Overlay (verbatim from neu-auth-dual.css)
+   ══════════════════════════════════════════════ */
+.neu-auth-overlay {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  border-radius: 120px 31px 31px 120px;
+  background: linear-gradient(135deg, #f7b733 0%, #f09819 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  text-align: center;
+  z-index: 10;
+  transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+              border-radius 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.neu-auth-container[data-active="register"] .neu-auth-overlay {
+  transform: translateX(-100%);
+  border-radius: 31px 120px 120px 31px;
+}
+
+/* production dark: muted dark-gold overlay instead of bright amber */
+.dark .neu-auth-overlay {
+  background: linear-gradient(135deg, #c4922a 0%, #7a5515 100%);
+}
+
+/* Overlay content fade */
+.overlay-content {
+  transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.overlay-content h2 {
+  font-family: 'Inter', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #141418;
+  margin: 0 0 12px;
+}
+.overlay-content p {
+  font-size: 14px;
+  color: #3a3020;
+  max-width: 260px;
+  margin: 0 auto 28px;
+  line-height: 1.5;
+}
+
+/* production dark: overlay text goes white on the muted gold */
+.dark .overlay-content h2 { color: #fff; }
+.dark .overlay-content p { color: rgba(255, 255, 255, 0.75); }
+
+/* Ghost Overlay Button (verbatim from neu.css) */
+.neu-button-ghost-overlay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  min-width: 160px;
+  padding: 0 32px;
+  border: 2px solid #fff;
+  border-radius: 25px;
+  background: transparent;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  box-shadow: none;
+}
+.neu-button-ghost-overlay:hover { background: rgba(255, 255, 255, 0.15); }
+.neu-button-ghost-overlay:active { background: rgba(255, 255, 255, 0.25); }
+.neu-button-ghost-overlay:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4); }
+
+/* Overlay content swap */
+.overlay-login, .overlay-register {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.overlay-register { display: none; }
+.neu-auth-container[data-active="register"] .overlay-login { display: none; }
+.neu-auth-container[data-active="register"] .overlay-register { display: flex; }
+
+/* ═══════════════
+   Mobile toggle
+   ═══════════════ */
+.neu-auth-mobile-toggle {
+  display: none;
+  border-radius: 17px;
+  overflow: hidden;
+  background: var(--neu-surface);
+  box-shadow: inset 3px 3px 6px var(--neu-inset-dark), inset -3px -3px 6px var(--neu-inset-light);
+}
+.neu-auth-toggle-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neu-subtle);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.neu-auth-toggle-btn.active {
+  background: var(--neu-accent);
+  color: var(--neu-accent-text);
+  box-shadow: 3px 3px 6px var(--neu-dark), -3px -3px 6px var(--neu-light);
+  border-radius: 17px;
+}
+
+/* ═══════════════
+   Responsive
+   ═══════════════ */
+@media (max-width: 767px) {
+  .neu-auth-container {
+    max-width: 420px;
+    min-height: auto;
+    flex-direction: column;
+  }
+  .neu-auth-panels { flex-direction: column; }
+  .neu-auth-overlay { display: none; }
+  .neu-auth-form {
+    padding: 34px 32px 36px;
+    transition: none;
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+  .neu-auth-form[data-hidden="true"] { display: none; }
+  .neu-auth-mobile-toggle { display: flex; }
+  .mobile-wrapper { padding: 0 16px; padding-top: 16px; }
+}
+
+/* ═══════════════
+   Reduced Motion
+   ═══════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .neu-auth-overlay,
+  .neu-auth-form,
+  .overlay-content { transition-duration: 0s !important; }
+  .neu-button-gradient,
+  .neu-button-ghost-overlay { transition: none; }
+  .neu-switch::before { transition: none; }
+  .neu-auth-toggle-btn { transition: none; }
+}
+
+/* sr-only */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- Theme Toggle (3-way: Light / System / Dark — same as production) -->
+<div class="theme-toggle" role="group" aria-label="Theme">
+  <button id="btn-light" onclick="setTheme('light')" aria-label="Light theme" aria-pressed="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+  </button>
+  <button id="btn-system" onclick="setTheme('system')" aria-label="System theme" aria-pressed="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+  </button>
+  <button id="btn-dark" onclick="setTheme('dark')" aria-label="Dark theme" aria-pressed="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+</div>
+
+<!-- Card -->
+<div class="neu-auth-container" id="card" data-active="login">
+
+  <!-- Mobile toggle -->
+  <div class="mobile-wrapper">
+    <div class="neu-auth-mobile-toggle">
+      <button class="neu-auth-toggle-btn active" id="mob-login" onclick="switchTo('login')">Sign In</button>
+      <button class="neu-auth-toggle-btn" id="mob-register" onclick="switchTo('register')">Sign Up</button>
+    </div>
+  </div>
+
+  <div class="neu-auth-panels">
+
+    <!-- ═══ Login Panel ═══ -->
+    <div class="neu-auth-form" id="panel-login">
+      <div class="neu-auth-badge">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="7.5" r="4.5"/>
+          <path d="M3.5 20.5c0-4.1 3.8-6.5 8.5-6.5s8.5 2.4 8.5 6.5c0 .8-.7 1.5-1.5 1.5h-14c-.8 0-1.5-.7-1.5-1.5Z"/>
+        </svg>
+      </div>
+      <h1 class="neu-auth-title">Welcome back</h1>
+      <p class="neu-auth-subtitle">Sign in to continue</p>
+
+      <form class="field-group" onsubmit="return false" novalidate>
+        <div class="field-wrap">
+          <span class="field-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 4.2a3.3 3.3 0 1 1 0 6.6 3.3 3.3 0 0 1 0-6.6ZM6.6 17.4c.7-2.1 2.9-3.4 5.4-3.4s4.7 1.3 5.4 3.4A8 8 0 0 1 12 20a8 8 0 0 1-5.4-2.6Z"/></svg>
+          </span>
+          <input class="neu-inset" type="email" placeholder="Email" autocomplete="email">
+        </div>
+
+        <div class="field-wrap has-eye">
+          <span class="field-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7 10V7a5 5 0 0 1 10 0v3h.5A2.5 2.5 0 0 1 20 12.5v7a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 19.5v-7A2.5 2.5 0 0 1 6.5 10H7Zm2.2 0h5.6V7a2.8 2.8 0 0 0-5.6 0v3Z"/></svg>
+          </span>
+          <input class="neu-inset" type="password" placeholder="Password" id="login-pw" autocomplete="current-password">
+          <button class="neu-eye" type="button" onclick="togglePw('login-pw', this)" aria-label="Show password">
+            <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+
+        <div class="remember-row">
+          <label class="remember-label">
+            <input type="checkbox" class="neu-switch" role="switch">
+            <span>Remember me</span>
+          </label>
+          <a class="forgot-link" href="#">Forgot?</a>
+        </div>
+
+        <button class="neu-button-gradient" type="button" style="margin-top:2px">
+          Login <span class="neu-btn-arrow" aria-hidden="true">→</span>
+        </button>
+      </form>
+
+      <p class="bottom-link">
+        Don't have an account? <button type="button" onclick="switchTo('register')">Sign up</button>
+      </p>
+    </div>
+
+    <!-- ═══ Register Panel ═══ -->
+    <div class="neu-auth-form" id="panel-register">
+      <div class="neu-auth-badge">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="10" cy="7.5" r="4"/>
+          <path d="M2.5 20c0-3.8 3.4-6 7.5-6 1.4 0 2.7.2 3.8.7a7.3 7.3 0 0 0-1.3 2A8.7 8.7 0 0 0 10 16c-3.1 0-5.5 1.6-5.5 4 0 .6-.5 1-1 1s-1-.4-1-1Z"/>
+          <path d="M19 14v2.5h-2.5a1 1 0 1 0 0 2H19V21a1 1 0 1 0 2 0v-2.5h2.5a1 1 0 1 0 0-2H21V14a1 1 0 1 0-2 0Z"/>
+        </svg>
+      </div>
+      <h1 class="neu-auth-title">Create your account</h1>
+      <p class="neu-auth-subtitle">Build professional CVs with AI</p>
+
+      <form class="field-group" onsubmit="return false" novalidate>
+        <div class="field-wrap">
+          <span class="field-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 4.2a3.3 3.3 0 1 1 0 6.6 3.3 3.3 0 0 1 0-6.6ZM6.6 17.4c.7-2.1 2.9-3.4 5.4-3.4s4.7 1.3 5.4 3.4A8 8 0 0 1 12 20a8 8 0 0 1-5.4-2.6Z"/></svg>
+          </span>
+          <input class="neu-inset" type="text" placeholder="Full name" autocomplete="name">
+        </div>
+
+        <div class="field-wrap">
+          <span class="field-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 6.4A2.5 2.5 0 0 1 5.5 5h13a2.5 2.5 0 0 1 2.1 1.4L12 12.2 3.4 6.4Z"/><path d="M3 8.6V17.5A2.5 2.5 0 0 0 5.5 20h13a2.5 2.5 0 0 0 2.5-2.5V8.6l-8.4 5.6a1 1 0 0 1-1.2 0L3 8.6Z"/></svg>
+          </span>
+          <input class="neu-inset" type="email" placeholder="Email" autocomplete="email">
+        </div>
+
+        <div class="field-wrap has-eye">
+          <span class="field-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7 10V7a5 5 0 0 1 10 0v3h.5A2.5 2.5 0 0 1 20 12.5v7a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 19.5v-7A2.5 2.5 0 0 1 6.5 10H7Zm2.2 0h5.6V7a2.8 2.8 0 0 0-5.6 0v3Z"/></svg>
+          </span>
+          <input class="neu-inset" type="password" placeholder="Password" id="reg-pw" autocomplete="new-password">
+          <button class="neu-eye" type="button" onclick="togglePw('reg-pw', this)" aria-label="Show password">
+            <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+        <p class="field-hint">At least 10 characters.</p>
+
+        <div class="field-wrap has-eye">
+          <span class="field-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7 10V7a5 5 0 0 1 10 0v3h.5A2.5 2.5 0 0 1 20 12.5v7a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 19.5v-7A2.5 2.5 0 0 1 6.5 10H7Zm2.2 0h5.6V7a2.8 2.8 0 0 0-5.6 0v3Z"/></svg>
+          </span>
+          <input class="neu-inset" type="password" placeholder="Confirm password" id="reg-cpw" autocomplete="new-password">
+          <button class="neu-eye" type="button" onclick="togglePw('reg-cpw', this)" aria-label="Show password">
+            <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+
+        <button class="neu-button-gradient" type="button">
+          Sign Up <span class="neu-btn-arrow" aria-hidden="true">→</span>
+        </button>
+      </form>
+
+      <p class="bottom-link bottom-link-register">
+        Already have an account? <button type="button" onclick="switchTo('login')">Sign in</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══ Sliding Amber Overlay ═══ -->
+  <div class="neu-auth-overlay" aria-hidden="true">
+    <div class="overlay-content">
+      <div class="overlay-login">
+        <h2>Hello, Friend!</h2>
+        <p>Enter your details and start building your professional CV</p>
+        <button class="neu-button-ghost-overlay" type="button" onclick="switchTo('register')">Sign Up</button>
+      </div>
+      <div class="overlay-register">
+        <h2>Welcome Back!</h2>
+        <p>Sign in to keep using all of our features</p>
+        <button class="neu-button-ghost-overlay" type="button" onclick="switchTo('login')">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sr-announce" class="sr-only" aria-live="polite" role="status"></div>
+</div>
+
+<script>
+var card = document.getElementById('card');
+var announce = document.getElementById('sr-announce');
+var THEME_KEY = 'neu-theme';
+
+function switchTo(mode) {
+  card.setAttribute('data-active', mode);
+  document.getElementById('mob-login').classList.toggle('active', mode === 'login');
+  document.getElementById('mob-register').classList.toggle('active', mode === 'register');
+  document.getElementById('panel-login').setAttribute('data-hidden', mode !== 'login');
+  document.getElementById('panel-register').setAttribute('data-hidden', mode !== 'register');
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      var panel = document.getElementById(mode === 'login' ? 'panel-login' : 'panel-register');
+      var input = panel.querySelector('input');
+      if (input) input.focus();
+    });
+  });
+  announce.textContent = mode === 'login' ? 'Sign in form' : 'Create account form';
+}
+
+function togglePw(id, btn) {
+  var input = document.getElementById(id);
+  var open = btn.querySelector('.eye-open');
+  var closed = btn.querySelector('.eye-closed');
+  if (input.type === 'password') {
+    input.type = 'text';
+    open.style.display = 'none';
+    closed.style.display = 'block';
+    btn.setAttribute('aria-label', 'Hide password');
+  } else {
+    input.type = 'password';
+    open.style.display = 'block';
+    closed.style.display = 'none';
+    btn.setAttribute('aria-label', 'Show password');
+  }
+}
+
+function applyTheme(pref) {
+  var dark = pref === 'dark' || (pref === 'system' && matchMedia('(prefers-color-scheme:dark)').matches);
+  document.documentElement.classList.toggle('dark', dark);
+  document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+  document.getElementById('btn-light').classList.toggle('active', pref === 'light');
+  document.getElementById('btn-light').setAttribute('aria-pressed', pref === 'light');
+  document.getElementById('btn-system').classList.toggle('active', pref === 'system');
+  document.getElementById('btn-system').setAttribute('aria-pressed', pref === 'system');
+  document.getElementById('btn-dark').classList.toggle('active', pref === 'dark');
+  document.getElementById('btn-dark').setAttribute('aria-pressed', pref === 'dark');
+}
+
+function setTheme(pref) {
+  try {
+    if (pref === 'system') localStorage.removeItem(THEME_KEY);
+    else localStorage.setItem(THEME_KEY, pref);
+  } catch(e) {}
+  applyTheme(pref);
+}
+
+// Init from localStorage or system
+(function() {
+  var stored;
+  try { stored = localStorage.getItem(THEME_KEY); } catch(e) {}
+  var pref = (stored === 'light' || stored === 'dark') ? stored : 'system';
+  applyTheme(pref);
+
+  // Follow system changes when on "system"
+  matchMedia('(prefers-color-scheme:dark)').addEventListener('change', function() {
+    var p;
+    try { p = localStorage.getItem(THEME_KEY); } catch(e) {}
+    if (!p) applyTheme('system');
+  });
+})();
+
+// Init mobile panel visibility
+document.getElementById('panel-register').setAttribute('data-hidden', 'true');
+</script>
+
+</body>
+</html>
