@@ -6,9 +6,7 @@ A premium neumorphic (soft UI) dual-panel login/register page with a sliding amb
 
 ## Demo Video
 
-https://github.com/user-attachments/assets/sliding-animation.mp4
-
-> Upload `sliding-animation.mp4` to a GitHub issue or drag it into the README editor to get the embed URL.
+https://github.com/user-attachments/assets/bbfc8667-3cc7-4e85-b4a8-b334f908005f
 
 ## Features
 
